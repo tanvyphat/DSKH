@@ -1,0 +1,41 @@
+name: Supabase Heartbeat
+
+on:
+  schedule:
+    # 05:00 Asia/Ho_Chi_Minh = 22:00 UTC (previous day)
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Supabase database
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_ANON_KEY repository secrets."
+            exit 1
+          fi
+
+          BASE_URL="${SUPABASE_URL%/}"
+          HTTP_CODE="$(curl --silent --show-error --output /tmp/supabase-response.json --write-out '%{http_code}' \
+            --request GET \
+            --header "apikey: ${SUPABASE_ANON_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            --header "Accept-Profile: public" \
+            --url "${BASE_URL}/rest/v1/customers?select=id&limit=1")"
+
+          echo "Supabase HTTP status: ${HTTP_CODE}"
+          cat /tmp/supabase-response.json
+
+          case "${HTTP_CODE}" in
+            2*) echo "Supabase heartbeat OK." ;;
+            *) echo "Supabase heartbeat failed."; exit 1 ;;
+          esac
