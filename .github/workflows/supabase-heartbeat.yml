@@ -2,8 +2,8 @@ name: Supabase Heartbeat
 
 on:
   schedule:
-    # 05:00 Asia/Ho_Chi_Minh = 22:00 UTC (previous day)
-    - cron: '0 22 * * *'
+    # Every 6 hours: 01:00, 07:00, 13:00, 19:00 Asia/Ho_Chi_Minh (UTC+7)
+    - cron: '0 0,6,12,18 * * *'
   workflow_dispatch:
 
 jobs:
